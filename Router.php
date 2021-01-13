@@ -2,9 +2,9 @@
 
 class Router {
 
-    private $routes = [], //route from config and [method, file]
-            $params = [], //method and file
-            $urlParams = [], //passed parameters in url
+    private $routes = [],
+            $params = [],
+            $urlParams = [],
             $urlConfig,
             $rootDirectory;
 
@@ -17,25 +17,51 @@ class Router {
         }
     }
 
+    /**
+    Parameters:
+    $route - string
+    $params - array
+
+    Description: преобразование в шаблон регулярного выражения, маршрута и добавление его с параметрами в свойство $routes
+
+    Return value: null
+     **/
     public function add($route, $params) {
         $route = '#^' . preg_replace('#/:([^/]+)#', '/(?<$1>[^/]+)', $route) . '/?$#';
         $this->routes[$route] = $params;
     }
 
+    /**
+    Parameters:
+
+    Description: поиск введенного в адресную строку браузера маршрута в уже
+               * существующих маршрутах, которые были переданны массивом в конструктор этого класса.
+               * Сохранение найденного маршрута и параметров в соответствующие свойства класса.
+
+    Return value: boolean
+     **/
     public function match() {
-        $url = trim($_SERVER['REQUEST_URI'], '/'); //отрезаем '/' с обоих сторон
-        foreach ($this->routes as $route => $params) { //перебираем массив с шаблоном маршрута и настройками для маршрута
-            if (preg_match($route, $url, $matches)) { //проверяем соответствует ли введенный url шаблону маршрута из config
-                $this->urlParams = $this->clearParams($matches); //очищаем массив от числовых ключей
+        $url = trim($_SERVER['REQUEST_URI'], '/');
+        foreach ($this->routes as $route => $params) {
+            if (preg_match($route, $url, $matches)) {
+                $this->urlParams = $this->clearParams($matches);
                 foreach ($params as $key => $val) {
-                    $this->params[$key] = $val; //сохраняем method и file в виде массива в переменную $this->params
+                    $this->params[$key] = $val;
                 }
-                return true; //если маршрут найден, то возвращаем true
+                return true;
             }
         }
-        return false; //иначе false
+        return false;
     }
 
+    /**
+    Parameters:
+    $params - array
+
+    Description: Очистка переданного массива от числовых ключей
+
+    Return value: array
+     **/
     private function clearParams($params) {
         $result = [];
         foreach ($params as $key => $param) {
@@ -46,6 +72,17 @@ class Router {
         return $result;
     }
 
+    /**
+    Parameters:
+    $urlConfig - array
+    $urlParams - array
+
+    Description: Отправка параметров, переданных в адресной строке, методом GET либо POST
+               * на нужную страницу и возврат, указанного в параметрах маршрута этого имени файла
+               * для открытия и приема в нем переданных параметров из массива GET либо POST
+
+    Return value: string
+     **/
     private function formedAddress($urlConfig, $urlParams) {
 
         switch ($urlConfig['method']) {
@@ -71,10 +108,17 @@ class Router {
 
     }
 
+    /**
+    Parameters:
+
+    Description: Запуск маршрутизатора
+
+    Return value: null
+     **/
     public function run() {
-        if ($this->match()) { //если введенный путь соответствует шаблону из config
+        if ($this->match()) {
             $formedUrl = $this->formedAddress($this->params, $this->urlParams);
-            if (file_exists($this->rootDirectory . $formedUrl)) { //если файл существует
+            if (file_exists($this->rootDirectory . $formedUrl)) {
                 include $this->rootDirectory . $formedUrl; exit;
             } else {
                 include $this->rootDirectory . $this->urlConfig['pageError']['file']; exit;
@@ -83,7 +127,5 @@ class Router {
             include $this->rootDirectory . $this->urlConfig['pageError']['file']; exit;
         }
     }
-
-
 
 }
